@@ -15,10 +15,12 @@
     "chai": "^1.9.1",
     "expect.js": "^0.3.1",
     "mocha": "^1.20.1",
+    "nock": "^0.40.0",
     "sinon": "^1.10.2",
     "sinon-chai": "^2.5.0"
   },
   "dependencies": {
+    "async": "^0.9.0",
     "cheerio": "^0.17.0"
   }
 }
