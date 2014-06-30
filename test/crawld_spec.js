@@ -61,5 +61,22 @@ describe('Crawld', function() {
         done(err);
       });
     });
+
+    it('can have more extensive config for pages', function(done) {
+      var config = { pages: [{ url: 'http://page2', within: 'body div' }] },
+          crawld = new Crawld(config),
+          page   = { store: sinon.spy() };
+
+      CrawlerStub.prototype.crawl.yieldsAsync(null, {
+        'http://page2': 'Page2 content'
+      });
+      PageStub.returns(page);
+
+      crawld.run(function(err) {
+        expect(CrawlerStub).to.have.been.calledWith([config.pages[0].url]);
+        expect(PageStub).to.have.been.calledWith(config.pages[0].url, config.pages[0]);
+        done(err);
+      });
+    });
   });
 });

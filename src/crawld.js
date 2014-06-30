@@ -3,13 +3,21 @@ var Crawler = require('./crawler.js'),
 
 
 function Crawld(config) {
-  this._config = config;
+  this._config = {};
+  config.pages.forEach(function(conf) {
+    if (typeof conf === 'string') {
+      this._config[conf] = {};
+    } else {
+      this._config[conf.url] = conf;
+    }
+  }, this);
 }
 
 Crawld.prototype.run = function run(cb) {
-  (new Crawler(this._config.pages)).crawl(function(err, results) {
+  var config = this._config;
+  (new Crawler(Object.keys(config))).crawl(function(err, results) {
     Object.keys(results).forEach(function(url) {
-      (new Page(url)).store(results[url]);
+      (new Page(url, config[url])).store(results[url]);
     });
     cb(err);
   });
