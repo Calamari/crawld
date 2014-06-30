@@ -3,12 +3,16 @@ var redis  = require('redis'),
     path   = require('path'),
     async  = require('async'),
     moment = require('moment'),
-    client = redis.createClient();
+    client = redis.createClient(),
+
+    ChangeChecker = require('./change_checker.js');
 
 
-function Page(url) {
+function Page(url, config) {
   this.url = url;
+  this.config = config;
   this.storageKey = 'crawld:pages:' + url;
+  this.storageIndexKey = 'crawld:pages:currents:' + url;
 }
 
 Page.downloadPath = process.env.CRAWLD_PATH;
@@ -17,15 +21,35 @@ Page.prototype.store = function store(content, cb) {
   var now  = moment().format('YYYYMMDDhhmmss'),
       self = this;
 
-  async.parallel([
-    function(cb) { client.hset(self.storageKey + ':' + now, 'content', content, cb); },
-    function(cb) {
-      var pageDir = path.join(Page.downloadPath, encodeURIComponent(self.url));
-      fs.mkdir(pageDir, function() {
-        fs.writeFile(path.join(pageDir, now), content, cb);
-      });
-    }
-  ], cb);
+  client.get(this.storageIndexKey, function(err, lastVersion) {
+    async.parallel([
+      function storeChangedFlag(cb) {
+        if (lastVersion) {
+          client.hget(self.storageKey + ':' + lastVersion, 'content', function(err, lastContent) {
+            var checker = new ChangeChecker(content, self.config);
+            if (checker.hasChangedTo(lastContent)) {
+              client.hset(self.storageKey + ':' + now, 'changed', lastVersion, cb);
+            } else {
+              cb();
+            }
+          });
+        } else {
+          cb();
+        }
+      },
+      function saveToDb(cb) {
+        client.hset(self.storageKey + ':' + now, 'content', content, function() {
+          client.set(self.storageIndexKey, now, cb);
+        });
+      },
+      function(cb) {
+        var pageDir = path.join(Page.downloadPath, encodeURIComponent(self.url));
+        fs.mkdir(pageDir, function() {
+          fs.writeFile(path.join(pageDir, now), content, cb);
+        });
+      }
+    ], cb);
+  });
 };
 
 module.exports = Page;
