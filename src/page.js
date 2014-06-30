@@ -6,15 +6,21 @@ var redis  = require('redis'),
     client = redis.createClient();
 
 
-function Page() {
+function Page(url) {
+  this.url = url;
+  this.storageKey = 'crawld:pages:' + url;
 }
 
-Page.store = function store(page, content, cb) {
-  var now = moment().format('YYYYMMDDhhmmss');
+Page.downloadPath = process.env.CRAWLD_PATH;
+
+Page.prototype.store = function store(content, cb) {
+  var now  = moment().format('YYYYMMDDhhmmss'),
+      self = this;
+
   async.parallel([
-    function(cb) { client.hset('crawld:pages:' + page + ':' + now, 'content', content, cb); },
+    function(cb) { client.hset(self.storageKey + ':' + now, 'content', content, cb); },
     function(cb) {
-      var pageDir = path.join(Page.downloadPath, encodeURIComponent(page));
+      var pageDir = path.join(Page.downloadPath, encodeURIComponent(self.url));
       fs.mkdir(pageDir, function() {
         fs.writeFile(path.join(pageDir, now), content, cb);
       });

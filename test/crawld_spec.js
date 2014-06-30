@@ -10,25 +10,28 @@ chai.use(sinonChai);
 var CrawlerStub = sinon.stub();
 CrawlerStub.prototype.crawl = sinon.stub();
 
+var PageStub = sinon.stub();
+
 var Crawler = proxyquire('../src/crawld', {
-  './crawler.js': CrawlerStub
+  './crawler.js': CrawlerStub,
+  './page.js': PageStub
 });
 var Crawld = require('../src/crawld.js');
 var Page   = require('../src/page.js');
 
 describe('Crawld', function() {
   describe('#run', function() {
-    var config = { pages: ['http://page1', 'http://page2'] };
+    var config = { pages: ['http://page2'] };
 
     beforeEach(function() {
       CrawlerStub.prototype.crawl.reset();
       this.crawld = new Crawld(config);
 
-      sinon.stub(Page, 'store');
+      sinon.stub(Page.prototype, 'store');
     });
 
     afterEach(function() {
-      Page.store.restore();
+      Page.prototype.store.restore();
     });
 
     it('calls crawler with a list of pages', function() {
@@ -42,15 +45,19 @@ describe('Crawld', function() {
     });
 
     it('calls Page.store with every page', function(done) {
+      var page1 = { store: sinon.spy() },
+          page2 = { store: sinon.spy() };
       CrawlerStub.prototype.crawl.yieldsAsync(null, {
         'http://page1': 'Page1 content',
         'http://page2': 'Page2 content'
       });
+      PageStub.withArgs('http://page1').returns(page1);
+      PageStub.withArgs('http://page2').returns(page2);
 
       this.crawld.run(function(err) {
-        expect(Page.store).to.have.been.calledTwice;
-        expect(Page.store).to.have.been.calledWith('http://page1', 'Page1 content');
-        expect(Page.store).to.have.been.calledWith('http://page2', 'Page2 content');
+        expect(PageStub).to.have.been.calledTwice;
+        expect(page1.store).to.have.been.calledWith('Page1 content');
+        expect(page2.store).to.have.been.calledWith('Page2 content');
         done(err);
       });
     });

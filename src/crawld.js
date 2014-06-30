@@ -8,8 +8,8 @@ function Crawld(config) {
 
 Crawld.prototype.run = function run(cb) {
   (new Crawler(this._config.pages)).crawl(function(err, results) {
-    Object.keys(results).forEach(function(page) {
-      Page.store(page, results[page]);
+    Object.keys(results).forEach(function(url) {
+      (new Page(url)).store(results[url]);
     });
     cb(err);
   });
