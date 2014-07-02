@@ -66,5 +66,51 @@ describe('ChangeChecker', function() {
         expect(this.checker.hasChangedTo(wcsCafe3)).to.true;
       });
     });
+
+    describe('given a configuration with multiple areas and broken html', function() {
+      var brokenHtml1 = '<html><title>Test</title><body>x</html>';
+      var brokenHtml2 = '<html><title>Test</title><body>xy</html>';
+      var brokenHtml3 = '<html><title>Test2</title><body>x</html>';
+      before(function() {
+        this.checker = new ChangeChecker(brokenHtml1, {
+          within: ['body']
+        });
+      });
+
+      it('returns false if no watched part has changed', function() {
+        expect(this.checker.hasChangedTo(brokenHtml1)).to.false;
+      });
+
+      it('returns true if changed page did change in one of that parts', function() {
+        expect(this.checker.hasChangedTo(brokenHtml2)).to.true;
+      });
+
+      it('returns false if another part has changed only', function() {
+        expect(this.checker.hasChangedTo(brokenHtml3)).to.false;
+      });
+    });
+
+    describe('given a configuration where area occures multiple times', function() {
+      var html1 = '<html><div>Test</div><div>x</div></html>';
+      var html2 = '<html><div>Test</div><div>x</div><div>x2</div></html>';
+      var html3 = '<html><div>Test</div><div>x2</div></html>';
+      before(function() {
+        this.checker = new ChangeChecker(html1, {
+          within: ['div']
+        });
+      });
+
+      it('returns false if no watched part has changed', function() {
+        expect(this.checker.hasChangedTo(html1)).to.false;
+      });
+
+      it('returns true if number of occurances differs between pages', function() {
+        expect(this.checker.hasChangedTo(html2)).to.true;
+      });
+
+      it('returns true if changed page did change in one of that occurances', function() {
+        expect(this.checker.hasChangedTo(html3)).to.true;
+      });
+    });
   });
 });

@@ -13,7 +13,17 @@ ChangeChecker.prototype.hasChangedTo = function hasChangedTo(website) {
     if (this._config) {
       if (Array.isArray(this._config.within)) {
         return !this._config.within.every(function(within) {
-          return $(within).html() === this.$(within).html();
+          if ($(within).length === this.$(within).length) {
+            for (var l=$(within).length; l--;) {
+              if ($(within).eq(l).html() !== this.$(within).eq(l).html()) {
+                return false;
+              }
+            }
+            return true;
+          } else {
+            return false;
+          }
+                  $(within).every(function(item) {})
         }, this);
       } else {
         return $(this._config.within).html() !== this.$(this._config.within).html();
