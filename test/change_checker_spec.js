@@ -1,6 +1,4 @@
-var fs     = require('fs'),
-    chai   = require('chai'),
-    expect = chai.expect;
+var fs     = require('fs');
 
 var ChangeChecker = require('../src/change_checker.js');
 

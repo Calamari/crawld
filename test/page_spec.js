@@ -2,18 +2,13 @@ var fs     = require('fs'),
     async  = require('async'),
     path   = require('path'),
     rimraf = require('rimraf'),
-    moment = require('moment'),
-    chai   = require('chai'),
-    sinon  = require('sinon'),
-    expect = chai.expect;
+    moment = require('moment');
 
 var redis  = require('redis'),
     client = redis.createClient();
 
 var Page = require('../src/page.js'),
     testDownloadPath = path.join(__dirname, 'downloaded-files');
-
-Page.storagePrefix = 'crawld_test';
 
 describe('Page', function() {
   before(function() {

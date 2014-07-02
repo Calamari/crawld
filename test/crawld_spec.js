@@ -1,11 +1,6 @@
 var fs         = require('fs'),
-    chai       = require('chai'),
-    sinon      = require('sinon'),
-    proxyquire = require('proxyquire'),
-    sinonChai  = require("sinon-chai"),
-    expect     = chai.expect;
+    proxyquire = require('proxyquire');
 
-chai.use(sinonChai);
 
 var CrawlerStub = sinon.stub();
 CrawlerStub.prototype.crawl = sinon.stub();

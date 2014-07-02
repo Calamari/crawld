@@ -1,13 +1,7 @@
 var fs     = require('fs'),
-    chai   = require('chai'),
-    nock   = require('nock'),
-    sinon  = require('sinon'),
-    expect = chai.expect;
+    nock   = require('nock');
 
 var Crawler = require('../src/crawler.js');
-
-// Disable real http requests
-nock.disableNetConnect();
 
 describe('Crawler', function() {
   it('does not have a result if crawl is not called', function() {
