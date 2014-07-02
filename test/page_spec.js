@@ -13,6 +13,8 @@ var redis  = require('redis'),
 var Page = require('../src/page.js'),
     testDownloadPath = path.join(__dirname, 'downloaded-files');
 
+Page.storagePrefix = 'crawld_test';
+
 describe('Page', function() {
   before(function() {
     Page.downloadPath = testDownloadPath;
@@ -20,7 +22,7 @@ describe('Page', function() {
   describe('#store', function() {
     // Delete all keys from database
     afterEach(function(done) {
-      client.keys('crawld:pages:*', function(err, keys) {
+      client.keys('crawld_test:pages:*', function(err, keys) {
         async.parallel(
           keys.map(function(key) {
             return function(cb) { client.del(key, cb); };
@@ -29,7 +31,7 @@ describe('Page', function() {
       });
     });
     afterEach(function(done) {
-      client.keys('crawld:pages:index:*', done);
+      client.keys('crawld_test:pages:index:*', done);
     });
 
     // Delete all files from filesystem
@@ -50,7 +52,7 @@ describe('Page', function() {
           page = new Page(url);
 
       page.store(html, function() {
-        client.keys('crawld:pages:*', function(err, replies) {
+        client.keys('crawld_test:pages:*', function(err, replies) {
           replies = replies.filter(function(r) { return r.indexOf('currents') === -1; });
           expect(replies).to.have.length(1);
           expect(replies[0]).to.contain(url);
@@ -70,8 +72,8 @@ describe('Page', function() {
           page = new Page(url);
 
       page.store(html, function() {
-        client.keys('crawld:pages:*', function(err, replies) {
-        client.get('crawld:pages:currents:' + url, function(err, value) {
+        client.keys('crawld_test:pages:*', function(err, replies) {
+        client.get('crawld_test:pages:currents:' + url, function(err, value) {
           expect(value).to.contain(moment().format('YYYYMMDD'));
           done(err);
         });
@@ -101,13 +103,13 @@ describe('Page', function() {
           html = '<html><title>My Page One</title><body>content</body></html>';
 
       beforeEach(function(done) {
-        client.hset('crawld:pages:' + url + ':20140101120000', 'content', html, done);
+        client.hset('crawld_test:pages:' + url + ':20140101120000', 'content', html, done);
       });
       beforeEach(function(done) {
-        client.set('crawld:pages:currents:' + url, '20140101120000', done);
+        client.set('crawld_test:pages:currents:' + url, '20140101120000', done);
       });
       beforeEach(function(done) {
-        client.hget('crawld:pages:' + url + ':20140101120000', 'content', function() {
+        client.hget('crawld_test:pages:' + url + ':20140101120000', 'content', function() {
           done();
         });
       });
@@ -116,7 +118,7 @@ describe('Page', function() {
         var page = new Page(url);
 
         page.store(html+'xxxxx', function() {
-          client.keys('crawld:pages:' + url + ':*', function(err, replies) {
+          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
             replies = replies.sort();
             expect(replies).to.have.length(2);
 
@@ -132,7 +134,7 @@ describe('Page', function() {
         var page = new Page(url);
 
         page.store(html, function() {
-          client.keys('crawld:pages:' + url + ':*', function(err, replies) {
+          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
             replies = replies.sort();
             expect(replies).to.have.length(2);
 
@@ -148,7 +150,7 @@ describe('Page', function() {
         var page = new Page('page2.com');
 
         page.store(html, function() {
-          client.keys('crawld:pages:' + url + ':*', function(err, replies) {
+          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
             replies = replies.sort();
             expect(replies).to.have.length(1);
 
@@ -167,7 +169,7 @@ describe('Page', function() {
           var page = new Page(url, config);
 
           page.store(html.replace('content', 'changed content'), function() {
-            client.keys('crawld:pages:' + url + ':*', function(err, replies) {
+            client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
               replies = replies.sort();
               expect(replies).to.have.length(2);
 
@@ -183,7 +185,7 @@ describe('Page', function() {
           var page = new Page(url, config);
 
           page.store(html.replace('Page One', 'Page One-Two'), function() {
-            client.keys('crawld:pages:' + url + ':*', function(err, replies) {
+            client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
               replies = replies.sort();
               expect(replies).to.have.length(2);
 

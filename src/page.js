@@ -11,10 +11,11 @@ var redis  = require('redis'),
 function Page(url, config) {
   this.url = url;
   this.config = config;
-  this.storageKey = 'crawld:pages:' + url;
-  this.storageIndexKey = 'crawld:pages:currents:' + url;
+  this.storageKey = Page.storagePrefix + ':pages:' + url;
+  this.storageIndexKey = Page.storagePrefix + ':pages:currents:' + url;
 }
 
+Page.storagePrefix = 'crawld';
 Page.downloadPath = process.env.CRAWLD_PATH;
 
 Page.prototype.store = function store(content, cb) {
