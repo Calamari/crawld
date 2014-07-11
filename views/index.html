@@ -1,0 +1,52 @@
+<html>
+<head>
+  <title>What has Changed?</title>
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <style type="text/css">
+  .traffic-light {
+    background: green;
+    display: block;
+  }
+  .traffic-light.red {
+    background: red;
+  }
+  .traffic-light a {
+    -webkit-transition: opacity 0.2s;
+            transition: opacity 0.2s;
+    color: white;
+    display: none;
+    opacity: 0;
+  }
+  .traffic-light.red a {
+    display: inline;
+  }
+  .traffic-light.red:hover a {
+    color: white;
+    opacity: 1;
+  }
+  </style>
+</head>
+<body>
+  <section class="container">
+    <h1>What has Changed?</h1>
+
+    <table class="table">
+      <thead>
+        <tr><td>URL</td><td>last Version</td><td>last Change</td><td>changed</td></tr>
+      </thead>
+      <tbody>
+        {{#pages}}
+          <tr>
+            <td><a href="{{url}}">{{url}}</a></td>
+            <td>{{lastPageVersion}}</td>
+            <td>{{lastChange}}</td>
+            <td class="traffic-light{{#changed}} red{{/changed}}">
+              <a href="/checked?url={{url}}">check!</a>
+            </td>
+          </tr>
+        {{/pages}}
+      </tbody>
+    </table>
+  </section>
+</body>
+</html>

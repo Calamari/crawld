@@ -30,13 +30,13 @@ Crawld.prototype.run = function run(cb) {
 
       Page.findOne({ url: url }, function(err, page) {
         if (!page) {
-          var page = new Page({ url: url, config: config.pages[url] });
-          page.save(function(err) {
-            storeIt();
-          });
+          page = new Page({ url: url, config: config.pages[url] });
         } else {
-          storeIt();
+          page.config = config.pages[url];
         }
+        page.save(function(err) {
+          storeIt();
+        });
       });
     });
   });

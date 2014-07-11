@@ -10,12 +10,38 @@ var fs     = require('fs'),
 var PageSchema = new mongoose.Schema({
   config: mongoose.SchemaTypes.Mixed,
   url: { type: String, index: true },
+  lastProcessed: Date,
   pages: [{
     body: String,
     createdAt: Date,
     changed: Boolean
   }]
 });
+
+PageSchema.methods.lastChange = function lastChange() {
+  for (var i=this.pages.length; i--;) {
+    if (this.pages[i].changed) {
+      return this.pages[i].createdAt;
+    }
+  }
+};
+
+PageSchema.methods.hasChanged = function hasChanged() {
+  var changed = false,
+      lastProcessed = moment(this.lastProcessed);
+
+  for (var i=this.pages.length; i--;) {
+    if (this.lastProcessed && lastProcessed > moment(this.pages[i].createdAt)) {
+      break;
+    }
+    if (this.pages[i].changed) {
+      changed = true;
+    }
+  }
+
+  return changed;
+};
+
 
 PageSchema.statics.store = function store(url, content, cb) {
   var Page = this;
