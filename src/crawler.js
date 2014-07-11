@@ -16,14 +16,12 @@ Crawler.prototype.crawl = function crawl(cb) {
     calls[site] = function(cb) { self.retrieve(site, cb); };
   });
   async.parallel(calls, function(err, results) {
-    console.log("parallel", err, Object.keys(results));
     self.results = results;
     cb(err, results);
   });
 };
 
 Crawler.prototype.retrieve = function retrieve(url, cb) {
-  console.log("retrieve", url);
   http.get(url, function(res) {
     var str = '';
 
