@@ -15,25 +15,30 @@ function Crawld(config) {
 
 Crawld.prototype.run = function run(cb) {
   var config = this._config;
-  console.log("RUN", config);
+  console.log("do", Object.keys(config.pages));
   (new Crawler({ sites: Object.keys(config.pages) })).crawl(function(err, results) {
-    console.log("results", results);
     if (err) { return cb(err); }
     var count = 0;
     var resultKeys = Object.keys(results);
     resultKeys.forEach(function(url) {
+      console.log(url, count, resultKeys.length);
       function storeIt() {
         Page.store(url, results[url], function(err) {
+          console.log("page stored", url, err);
           if (++count === resultKeys.length) {
             cb(err);
           }
         });
       }
 
+      console.log("about to save", { url: url });
       Page.findOne({ url: url }, function(err, page) {
+        console.log("found?", err, page);
         if (!page) {
+          console.log("save page", { url: url, config: config.pages[url] });
           var page = new Page({ url: url, config: config.pages[url] });
-          page.save(function() {
+          page.save(function(err) {
+            console.log("saved", err);
             storeIt();
           });
         } else {

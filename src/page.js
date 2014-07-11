@@ -1,5 +1,4 @@
-var redis  = require('redis'),
-    fs     = require('fs'),
+var fs     = require('fs'),
     path   = require('path'),
     async  = require('async'),
     moment = require('moment'),
@@ -19,7 +18,6 @@ var PageSchema = new mongoose.Schema({
 });
 
 PageSchema.statics.store = function store(url, content, cb) {
-  console.log('STORE', url);
   var Page = this;
 
   this.findOne({ url: url }, function(err, page) {

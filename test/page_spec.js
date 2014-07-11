@@ -90,7 +90,6 @@ describe('Page', function() {
         Page.store(url1, html, function() {
           Page.findOne({ url: url1 }, function(err, page) {
             expect(page.pages).to.have.length(2);
-            console.log(page.pages);
 
             expect(page.pages[1].body).to.equal(html);
             expect(page.pages[1].changed).to.equal(false);

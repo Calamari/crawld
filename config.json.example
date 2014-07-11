@@ -1,0 +1,6 @@
+{
+  "pages": [
+    "http://example.com",
+    { "url": "http://test.de", "within": "div" }
+  ]
+}

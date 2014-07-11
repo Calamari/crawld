@@ -40,7 +40,7 @@ describe('Crawler', function() {
     });
   });
 
-  describe('#crawl', function() {
+  describe.only('#crawl', function() {
     var PAGE1 = 'http://my.awesomne.ss';
     var PAGE2 = 'http://dance.me';
     var HTML1 = '<html><title>My Aweome page</title></html>';
@@ -71,6 +71,7 @@ describe('Crawler', function() {
 
     it('passes the list of results to callback', function() {
       expect(results).to.have.eql(this.crawler.results);
+      expect(Object.keys(results)).to.have.length(2);
     });
   });
 });
