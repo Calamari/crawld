@@ -3,54 +3,58 @@ var redis  = require('redis'),
     path   = require('path'),
     async  = require('async'),
     moment = require('moment'),
-    client = redis.createClient(),
+    mongoose = require('mongoose'),
 
     ChangeChecker = require('./change_checker.js');
 
 
-function Page(url, config) {
-  this.url = url;
-  this.config = config;
-  this.storageKey = Page.storagePrefix + ':pages:' + url;
-  this.storageIndexKey = Page.storagePrefix + ':pages:currents:' + url;
-}
+var PageSchema = new mongoose.Schema({
+  config: mongoose.SchemaTypes.Mixed,
+  url: { type: String, index: true },
+  pages: [{
+    body: String,
+    createdAt: Date,
+    changed: Boolean
+  }]
+});
 
-Page.storagePrefix = 'crawld';
-Page.downloadPath = process.env.CRAWLD_PATH;
+PageSchema.statics.store = function store(url, content, cb) {
+  console.log('STORE', url);
+  var Page = this;
 
-Page.prototype.store = function store(content, cb) {
-  var now  = moment().format('YYYYMMDDhhmmss'),
-      self = this;
+  this.findOne({ url: url }, function(err, page) {
+    if (err) { return cb(err); }
+    if (!page) { return cb(new Error('Page does not exist.')); }
 
-  client.get(this.storageIndexKey, function(err, lastVersion) {
+    var self         = page,
+        now          = moment(),
+        nowFormatted = now.format('YYYYMMDDhhmmss');
+
     async.parallel([
-      function storeChangedFlag(cb) {
-        if (lastVersion) {
-          client.hget(self.storageKey + ':' + lastVersion, 'content', function(err, lastContent) {
-            var checker = new ChangeChecker(content, self.config);
-            if (checker.hasChangedTo(lastContent)) {
-              client.hset(self.storageKey + ':' + now, 'changed', lastVersion, cb);
-            } else {
-              cb();
-            }
-          });
-        } else {
-          cb();
-        }
-      },
       function saveToDb(cb) {
-        client.hset(self.storageKey + ':' + now, 'content', content, function() {
-          client.set(self.storageIndexKey, now, cb);
+        var checker     = new ChangeChecker(content, self.config),
+            lastContent = self.pages.length && self.pages[self.pages.length-1].body,
+            hasChanged  = lastContent && checker.hasChangedTo(lastContent);
+
+        self.pages.push({
+          body: content,
+          createdAt: now.toDate(),
+          changed: hasChanged
         });
+        self.save(cb);
       },
       function(cb) {
         var pageDir = path.join(Page.downloadPath, encodeURIComponent(self.url));
         fs.mkdir(pageDir, function() {
-          fs.writeFile(path.join(pageDir, now), content, cb);
+          fs.writeFile(path.join(pageDir, nowFormatted), content, cb);
         });
       }
     ], cb);
   });
 };
+
+Page = mongoose.model('Page', PageSchema);
+
+Page.downloadPath = process.env.CRAWLD_PATH;
 
 module.exports = Page;

@@ -13,13 +13,13 @@ Crawler.prototype.crawl = function crawl(cb) {
   this.results = {};
 
   this._config.sites.map(function(site) {
-    calls[site] = function(cb) { self.retrieve(site, cb) };
+    calls[site] = function(cb) { self.retrieve(site, cb); };
   });
   async.parallel(calls, function(err, results) {
     self.results = results;
     cb(err, results);
   });
-}
+};
 
 Crawler.prototype.retrieve = function retrieve(url, cb) {
   http.get(url, function(res) {

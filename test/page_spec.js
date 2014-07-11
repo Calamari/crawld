@@ -4,9 +4,6 @@ var fs     = require('fs'),
     rimraf = require('rimraf'),
     moment = require('moment');
 
-var redis  = require('redis'),
-    client = redis.createClient();
-
 var Page = require('../src/page.js'),
     testDownloadPath = path.join(__dirname, 'downloaded-files');
 
@@ -15,18 +12,20 @@ describe('Page', function() {
     Page.downloadPath = testDownloadPath;
   });
   describe('#store', function() {
+    var url1 = 'http://page1.com';
+    var url2 = 'http://page2.com';
+
     // Delete all keys from database
-    afterEach(function(done) {
-      client.keys('crawld_test:pages:*', function(err, keys) {
-        async.parallel(
-          keys.map(function(key) {
-            return function(cb) { client.del(key, cb); };
-          })
-        , done);
-      });
+    beforeEach(function(done) {
+      Page.remove(done);
     });
-    afterEach(function(done) {
-      client.keys('crawld_test:pages:index:*', done);
+    beforeEach(function(done) {
+      page = new Page({ url: url1 });
+      page.save(done);
+    });
+    beforeEach(function(done) {
+      page = new Page({ url: url2 });
+      page.save(done);
     });
 
     // Delete all files from filesystem
@@ -41,52 +40,27 @@ describe('Page', function() {
     });
 
     it('saves the content into database', function(done) {
-      var url  = 'http://page1.com',
-          html = '<html>My Page One</html>',
+      var html = '<html>My Page One</html>';
 
-          page = new Page(url);
+      Page.store(url1, html, function() {
+        Page.findOne({ url: url1 }, function(err, page) {
+          expect(page.pages).to.have.length(1);
 
-      page.store(html, function() {
-        client.keys('crawld_test:pages:*', function(err, replies) {
-          replies = replies.filter(function(r) { return r.indexOf('currents') === -1; });
-          expect(replies).to.have.length(1);
-          expect(replies[0]).to.contain(url);
-
-          client.hget(replies[0], 'content', function(err, content) {
-            expect(content).to.equal(html);
-            done(err);
-          });
-        });
-      });
-    });
-
-    it('saves to db which version is the actual one', function(done) {
-      var url  = 'http://page1.com',
-          html = '<html>My Page One</html>',
-
-          page = new Page(url);
-
-      page.store(html, function() {
-        client.keys('crawld_test:pages:*', function(err, replies) {
-        client.get('crawld_test:pages:currents:' + url, function(err, value) {
-          expect(value).to.contain(moment().format('YYYYMMDD'));
+          expect(page.pages[0].body).to.equal(html);
+          expect(page.pages[0].changed).to.equal(false);
           done(err);
-        });
         });
       });
     });
 
     it('saves the content to filesystem as well', function(done) {
-      var url  = 'http://page2.com',
-          html = '<html>My Page Two</html>',
+      var html = '<html>My Page Two</html>';
 
-          page = new Page(url);
-
-      page.store(html, function() {
-        fs.readdir(path.join(testDownloadPath, encodeURIComponent(url)), function(err, files) {
+      Page.store(url2, html, function() {
+        fs.readdir(path.join(testDownloadPath, encodeURIComponent(url2)), function(err, files) {
           expect(files).to.have.length(1);
 
-          var file = fs.readFileSync(path.join(testDownloadPath, encodeURIComponent(url), files[0])).toString();
+          var file = fs.readFileSync(path.join(testDownloadPath, encodeURIComponent(url2), files[0])).toString();
           expect(file).to.equal(html);
           done(err);
         });
@@ -94,100 +68,67 @@ describe('Page', function() {
     });
 
     describe('having an older version of a page', function() {
-      var url  = 'page1.com',
-          html = '<html><title>My Page One</title><body>content</body></html>';
+      var html = '<html><title>My Page One</title><body>content</body></html>';
 
       beforeEach(function(done) {
-        client.hset('crawld_test:pages:' + url + ':20140101120000', 'content', html, done);
-      });
-      beforeEach(function(done) {
-        client.set('crawld_test:pages:currents:' + url, '20140101120000', done);
-      });
-      beforeEach(function(done) {
-        client.hget('crawld_test:pages:' + url + ':20140101120000', 'content', function() {
-          done();
-        });
+        Page.store(url1, html, done);
       });
 
       it('saves a flag to database if it has changed to previous version', function(done) {
-        var page = new Page(url);
+        Page.store(url1, html+'xxxxx', function() {
+          Page.findOne({ url: url1 }, function(err, page) {
+            expect(page.pages).to.have.length(2);
 
-        page.store(html+'xxxxx', function() {
-          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
-            replies = replies.sort();
-            expect(replies).to.have.length(2);
-
-            client.hget(replies[1], 'changed', function(err, changedTo) {
-              expect(changedTo).to.equal('20140101120000');
-              done(err);
-            });
+            expect(page.pages[1].body).to.equal(html+'xxxxx');
+            expect(page.pages[1].changed).to.equal(true);
+            done(err);
           });
         });
       });
 
       it('does not save the changed flag to database if it has NOT changed', function(done) {
-        var page = new Page(url);
+        Page.store(url1, html, function() {
+          Page.findOne({ url: url1 }, function(err, page) {
+            expect(page.pages).to.have.length(2);
+            console.log(page.pages);
 
-        page.store(html, function() {
-          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
-            replies = replies.sort();
-            expect(replies).to.have.length(2);
-
-            client.hget(replies[1], 'changed', function(err, changedTo) {
-              expect(changedTo).to.be.null;
-              done(err);
-            });
-          });
-        });
-      });
-
-      it('does not save a changed flag if there is no previous version', function(done) {
-        var page = new Page('page2.com');
-
-        page.store(html, function() {
-          client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
-            replies = replies.sort();
-            expect(replies).to.have.length(1);
-
-            client.hget(replies[0], 'changed', function(err, changedTo) {
-              expect(changedTo).to.be.null;
-              done(err);
-            });
+            expect(page.pages[1].body).to.equal(html);
+            expect(page.pages[1].changed).to.equal(false);
+            done(err);
           });
         });
       });
 
       describe('using a config', function() {
+        var url3 = 'http://page3.com';
         var config = { within: ['body'] };
 
+        beforeEach(function(done) {
+          page = new Page({ url: url3, config: config });
+          page.save(done);
+        });
+        beforeEach(function(done) {
+          Page.store(url3, html, done);
+        });
+
         it('saves a flag to database if it has changed within config', function(done) {
-          var page = new Page(url, config);
+          Page.store(url3, html.replace('content', 'changed content'), function() {
+            Page.findOne({ url: url3 }, function(err, page) {
+              expect(page.pages).to.have.length(2);
 
-          page.store(html.replace('content', 'changed content'), function() {
-            client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
-              replies = replies.sort();
-              expect(replies).to.have.length(2);
-
-              client.hget(replies[1], 'changed', function(err, changedTo) {
-                expect(changedTo).to.equal('20140101120000');
-                done(err);
-              });
+              expect(page.pages[1].changed).to.equal(true);
+              done(err);
             });
           });
         });
 
         it('does not save a changed flag if it has NOT changed within config', function(done) {
-          var page = new Page(url, config);
+          Page.store(url3, html.replace('Page One', 'Page One-Two'), function() {
+            Page.findOne({ url: url3 }, function(err, page) {
+              expect(page.pages).to.have.length(2);
 
-          page.store(html.replace('Page One', 'Page One-Two'), function() {
-            client.keys('crawld_test:pages:' + url + ':*', function(err, replies) {
-              replies = replies.sort();
-              expect(replies).to.have.length(2);
-
-              client.hget(replies[1], 'changed', function(err, changedTo) {
-                expect(changedTo).to.be.null;
-                done(err);
-              });
+              expect(page.pages[1].changed).to.equal(false);
+              done(err);
             });
           });
         });

@@ -1,76 +1,80 @@
-var fs         = require('fs');
+var fs      = require('fs'),
+    path    = require('path'),
+    mongoose= require('mongoose'),
+    rimraf  = require('rimraf');
 
 var Crawler = require('../src/crawler.js'),
     Crawld  = require('../src/crawld.js'),
     Page    = require('../src/page.js');
 
+var testDownloadPath = path.join(__dirname, 'downloaded-files');
 
 describe('Crawld', function() {
   describe('#run', function() {
-    var config = { pages: ['http://page2'] };
+    var config = { pages: ['http://page1', { url: 'http://page2', within: 'body div' }] };
 
+    before(function() {
+      Page.downloadPath = testDownloadPath;
+    });
+    beforeEach(function(done) {
+      Page.remove(done);
+    });
     beforeEach(function() {
       sinon.stub(Crawler.prototype, 'crawl');
-      this.crawld = new Crawld(config);
-
-      sinon.stub(Page.prototype, 'store');
-    });
-
-    afterEach(function() {
-      Crawler.prototype.crawl.restore();
-      Page.prototype.store.restore();
-    });
-
-    it('calls crawler with a list of pages', function() {
-      Page.prototype.store.restore();
-      sinon.stub(Page.prototype, 'store', function(content, cb) {
-        expect(this.config).to.eql(null);
-        expect(this.url).to.eql(config.pages[0]);
-        done();
-      });
-
-      this.crawld.run(function(err) {
-        if (err) { done(err); }
-      });
-    });
-
-    it('calls crawl on crawler instance', function() {
-      this.crawld.run(function() {});
-      expect(Crawler.prototype.crawl).to.have.been.calledOnce;
-    });
-
-    it('calls Page.store with every page', function(done) {
-      var page1 = { store: sinon.spy() },
-          page2 = { store: sinon.spy() };
       Crawler.prototype.crawl.yieldsAsync(null, {
         'http://page1': 'Page1 content',
         'http://page2': 'Page2 content'
       });
+      this.crawld = new Crawld(config);
 
+      sinon.stub(Page, 'store').yields();
+    });
+
+    afterEach(function() {
+      Crawler.prototype.crawl.restore();
+      Page.store.restore();
+    });
+
+    // Delete all "downloaded" files from filesystem
+    afterEach(function(done) {
+      rimraf(testDownloadPath, function() {
+        fs.mkdir(testDownloadPath, function() { done(); });
+      });
+    });
+
+    it('calls crawler with a list of pages', function(done) {
+      sinon.stub(Page, 'findOne').yields(null, {});
       this.crawld.run(function(err) {
-        expect(Page.prototype.store).to.have.been.calledWith('Page1 content');
-        expect(Page.prototype.store).to.have.been.calledWith('Page2 content');
+        if (err) { return done(err); }
+        expect(Page.store).to.have.been.calledWith(config.pages[0], 'Page1 content');
+        expect(Page.store).to.have.been.calledWith(config.pages[1].url, 'Page2 content');
+
+        Page.findOne.restore();
         done(err);
       });
     });
 
-    it('can have more extensive config for pages', function(done) {
-      var config = { pages: [{ url: 'http://page2', within: 'body div' }] },
-          crawld = new Crawld(config);
-
-      Page.prototype.store.restore();
-      sinon.stub(Page.prototype, 'store', function(content, cb) {
-        expect(this.config).to.eql(config.pages[0]);
-        expect(this.url).to.eql(config.pages[0].url);
-        done();
+    it('calls crawl on crawler instance', function(done) {
+      this.crawld.run(function(err) {
+        expect(Crawler.prototype.crawl).to.have.been.calledOnce;
+        done(err);
       });
+    });
 
-      Crawler.prototype.crawl.yieldsAsync(null, {
-        'http://page2': 'Page2 content'
+    it('calls Page.store with every page', function(done) {
+      this.crawld.run(function(err) {
+        expect(Page.store).to.have.been.calledWith('http://page1', 'Page1 content');
+        expect(Page.store).to.have.been.calledWith('http://page2', 'Page2 content');
+        done(err);
       });
+    });
 
-      crawld.run(function(err) {
-        if (err) { done(err); }
+    it('creates pages that do not exist yet', function(done) {
+      this.crawld.run(function(err) {
+        Page.find(function(err, docs) {
+          expect(docs).to.have.length(2);
+          done(err);
+        });
       });
     });
   });
