@@ -11,6 +11,98 @@ describe('Page', function() {
   before(function() {
     Page.downloadPath = testDownloadPath;
   });
+
+  describe('#getLastChangedPage', function() {
+    var url1 = 'http://page1.com',
+        url2 = 'http://page2.com',
+        page;
+
+    beforeEach(function(done) {
+      Page.remove(done);
+    });
+    beforeEach(function(done) {
+      Page.remove(done);
+    });
+    beforeEach(function(done) {
+      page = new Page({
+        url: url1,
+        lastProcessed: new Date(2001,2),
+        pages: [
+          {
+            body: 'one',
+            createdAt: new Date(2000,1),
+            changed: false
+          },
+          {
+            body: 'two',
+            createdAt: new Date(2001,1),
+            changed: true
+          },
+          {
+            body: 'three',
+            createdAt: new Date(2002,1),
+            changed: true
+          },
+          {
+            body: 'four',
+            createdAt: new Date(2003,1),
+            changed: true
+          },
+          {
+            body: 'four',
+            createdAt: new Date(2004,1),
+            changed: false
+          }
+        ]
+      });
+      page.save(done);
+    });
+    beforeEach(function(done) {
+      page2 = new Page({
+        url: url2,
+        lastProcessed: new Date(2002,2),
+        pages: [
+          {
+            body: 'one',
+            createdAt: new Date(2000,1),
+            changed: false
+          },
+          {
+            body: 'two',
+            createdAt: new Date(2001,1),
+            changed: true
+          },
+          {
+            body: 'three',
+            createdAt: new Date(2002,1),
+            changed: true
+          },
+          {
+            body: 'three',
+            createdAt: new Date(2003,1),
+            changed: false
+          },
+          {
+            body: 'three',
+            createdAt: new Date(2004,1),
+            changed: false
+          }
+        ]
+      });
+      page.save(done);
+    });
+
+    it('returns the page that was lastProcessed', function() {
+      var foundVersion = page.getLastChangedPage();
+      expect(foundVersion.body).to.eql('three');
+    });
+
+    it('returns null if there is no unprocessed change', function() {
+      var foundVersion = page2.getLastChangedPage();
+      expect(foundVersion).to.eql(null);
+    });
+  });
+
   describe('#store', function() {
     var url1 = 'http://page1.com';
     var url2 = 'http://page2.com';

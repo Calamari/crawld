@@ -27,7 +27,11 @@ PageSchema.methods.lastChange = function lastChange() {
 };
 
 PageSchema.methods.hasChanged = function hasChanged() {
-  var changed = false,
+  return !!this.getLastChangedPage();
+};
+
+PageSchema.methods.getLastChangedPage = function getLastChangedPage() {
+  var changed = null,
       lastProcessed = moment(this.lastProcessed);
 
   for (var i=this.pages.length; i--;) {
@@ -35,7 +39,7 @@ PageSchema.methods.hasChanged = function hasChanged() {
       break;
     }
     if (this.pages[i].changed) {
-      changed = true;
+      changed = this.pages[i];
     }
   }
 
