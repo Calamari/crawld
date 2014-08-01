@@ -40,7 +40,7 @@ describe('Crawler', function() {
     });
   });
 
-  describe.only('#crawl', function() {
+  describe('#crawl', function() {
     var PAGE1 = 'http://my.awesomne.ss';
     var PAGE2 = 'http://dance.me';
     var HTML1 = '<html><title>My Aweome page</title></html>';

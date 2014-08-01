@@ -2,6 +2,10 @@
 <head>
   <title>What has Changed?</title>
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/jsdifflib.css">
+  <script src="/diffview.js"></script>
+  <script src="/jsdifflib.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   <style type="text/css">
   .traffic-light {
     background: green;
@@ -24,6 +28,9 @@
     color: white;
     opacity: 1;
   }
+  .show-diff {
+    cursor: pointer;
+  }
   </style>
 </head>
 <body>
@@ -39,7 +46,7 @@
           <tr>
             <td><a href="{{url}}">{{url}}</a></td>
             <td>{{lastPageVersion}}</td>
-            <td>{{lastChange}}</td>
+            <td>{{lastChange}}{{#changed}} <button data-diff-url="/last?url={{url}}" class="btn btn-default btn-xs show-diff">showDiff</button>{{/changed}}</td>
             <td class="traffic-light{{#changed}} red{{/changed}}">
               <a href="/checked?url={{url}}">check!</a>
             </td>
@@ -47,6 +54,63 @@
         {{/pages}}
       </tbody>
     </table>
+    <div id="diffoutput-container" style="display:none">
+      <button class="btn btn-default btn-sm closer">Close Diff</button>
+      <div id="diffoutput"></div>
+    </div>
   </section>
+  <script>
+    $(function() {
+      var $diffOutputContainer = $("#diffoutput-container"),
+          $diffOutput = $("#diffoutput");
+      // basically copied and adapted from: http://cemerick.github.io/jsdifflib/demo.html
+      function diffUsingJS(str1, str2) {
+        // get the baseText and newText values from the two textboxes, and split them into lines
+        var baseText = difflib.stringAsLines(str1);
+        var newText = difflib.stringAsLines(str2);
+
+        // create a SequenceMatcher instance that diffs the two sets of lines
+        var sm = new difflib.SequenceMatcher(baseText, newText);
+
+        var opcodes = sm.get_opcodes();
+        $diffOutput.empty()
+
+        // build the diff view and add it to the current DOM
+        $diffOutput.append(diffview.buildView({
+          baseTextLines: baseText,
+          newTextLines: newText,
+          opcodes: opcodes,
+          // set the display titles for each resource
+          baseTextName: "Before",
+          newTextName: "Now",
+          contextSize: 5,
+          viewType: 1 // inline
+        }));
+      }
+
+      window.diff = {
+        show: function showDiff(str1, str2) {
+          $diffOutputContainer.show();
+          location.hash = '#diffoutput';
+          diffUsingJS(str1, str2);
+        },
+        hide: function hideDiff() {
+          $diffOutputContainer.hide();
+          location.hash = '#';
+        }
+      }
+
+      $diffOutputContainer.on('click', '.closer', function() {
+        diff.hide();
+      });
+      $('.show-diff').on('click', function(event) {
+        $.get($(event.target).data('diff-url'), function getDiff(data) {
+          if (data) {
+            diff.show(data.before, data.after);
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>

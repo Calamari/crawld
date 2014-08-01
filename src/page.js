@@ -39,11 +39,15 @@ PageSchema.methods.getLastChangedPage = function getLastChangedPage() {
       break;
     }
     if (this.pages[i].changed) {
-      changed = this.pages[i];
+      changed = this.pages[i-1];
     }
   }
 
   return changed;
+};
+
+PageSchema.methods.getActualPage = function getActualPage() {
+  return this.pages[this.pages.length-1];
 };
 
 

@@ -11,7 +11,7 @@ var Crawler = require('../src/crawler.js'),
 
 var testDownloadPath = path.join(__dirname, 'downloaded-files');
 
-describe('Integration', function() {
+xdescribe('Integration', function() {
   var URL1 = 'http://page1.com',
       URL2 = 'http://page2.com';
 
