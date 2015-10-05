@@ -1,4 +1,10 @@
 {
+  "mongodb": {
+    "url": "localhost",
+    "port": 27017,
+    "name": "crawld_dev"
+  },
+  "downloadPath": "/files",
   "pages": [
     "http://example.com",
     { "url": "http://test.de", "within": "div" }
